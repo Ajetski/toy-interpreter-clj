@@ -42,7 +42,7 @@ fn main() -> i32 {
 
 output:
 ```edn
-[:S
+[:MODULE
  [:FUNC
   "fn"
   [:IDENT "a"]
@@ -77,5 +77,18 @@ output:
      "+"
      [:EXPR [:FUNCCALL [:IDENT "b"] "(" [:PARAMS] ")"]]]]
    "}"]]]
+```
+
+grammar:
+```
+MODULE = FUNC+
+     FUNC = 'fn' IDENT '(' PARAMS ')' '->' 'i32' BLOCK
+     PARAMS = ''
+     IDENT = 'a' | 'b' | 'main'
+     BLOCK = '{' EXPR '}'
+     EXPR = ADDITION | LITERAL | FUNCCALL
+     FUNCCALL = IDENT '(' PARAMS ')'
+     LITERAL = #'[0-9]+'
+     ADDITION = EXPR '+' EXPR
 ```
 

@@ -3,11 +3,13 @@
             [clojure.string :as string]
             [instaparse.core :as insta]))
 
+;; ⚠️  beware ⚠️: global state... 👻 spooky 👻
 (def function-table (atom {}))
+(def call-stack     (atom []))
 
 (def language-grammar
   (insta/parser
-   "S = FUNC+
+   "MODULE = FUNC+
      FUNC = 'fn' IDENT '(' PARAMS ')' '->' 'i32' BLOCK
      PARAMS = ''
      IDENT = 'a' | 'b' | 'main'
