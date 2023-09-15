@@ -79,7 +79,7 @@ output:
    "}"]]]
 ```
 
-grammar:
+grammar [notation](https://github.com/Engelberg/instaparse/tree/master#notation):
 ```
 MODULE = FUNC+
      FUNC = 'fn' IDENT '(' PARAMS ')' '->' 'i32' BLOCK
