@@ -23,3 +23,59 @@
 * to start contributing seriously in clojure: I recommend getting comfortable with conjure.nvim, emacs, Intellij's Curisve plugin, or vscode's Calva extension
 * note: we are using clojure for initial prototyping speed, but we should be able to reuse parts of the parser/lexer and rewrite the backend in a different language if preferred. we can also rewrite the parser/lexer if desired. i just want to get something working first
 
+### status of parser
+
+input:
+```rs
+fn a() -> i32 {
+  5
+}
+
+fn b() -> i32 {
+  6
+}
+
+fn main() -> i32 {
+  a() + b()
+}
+```
+
+output:
+```edn
+[:S
+ [:FUNC
+  "fn"
+  [:IDENT "a"]
+  "("
+  [:PARAMS]
+  ")"
+  "->"
+  "i32"
+  [:BLOCK "{" [:EXPR [:LITERAL "5"]] "}"]]
+ [:FUNC
+  "fn"
+  [:IDENT "b"]
+  "("
+  [:PARAMS]
+  ")"
+  "->"
+  "i32"
+  [:BLOCK "{" [:EXPR [:LITERAL "6"]] "}"]]
+ [:FUNC
+  "fn"
+  [:IDENT "main"]
+  "("
+  [:PARAMS]
+  ")"
+  "->"
+  "i32"
+  [:BLOCK
+   "{"
+   [:EXPR
+    [:ADDITION
+     [:EXPR [:FUNCCALL [:IDENT "a"] "(" [:PARAMS] ")"]]
+     "+"
+     [:EXPR [:FUNCCALL [:IDENT "b"] "(" [:PARAMS] ")"]]]]
+   "}"]]]
+```
+
