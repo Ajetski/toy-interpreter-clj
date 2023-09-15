@@ -1,12 +1,19 @@
 (ns core
   (:require [clojure.pprint :refer [pprint]]))
 
-(defn run [opts]
-  (println "1 + 2 =" (+ 1 2))
-  (pprint opts))
+(defn parse [input]
+  (println "the input is:")
+  (pprint input))
 
-(defn add [a b]
-  (+ a b))
+(defn run [opts]
+  (if (contains? opts :filename)
+    (let [cwd (java.io.File. ".")
+          cwd-str (.getAbsolutePath cwd)
+          filename (:filename opts)
+          file-str (str cwd-str "/" filename)]
+      (println "file-str " file-str)
+        (parse (slurp file-str)))
+      (println "use std in")))
 
 (comment
-  (add 1 2))
+  (run {:filename "test_input/hello_world.txt"}))

@@ -1,4 +1,6 @@
 {:paths ["script"]
  :min-bb-version "0.4.0"
- :tasks {nrepl (shell "clj -M:repl --port 5555")}}
+ :tasks {nrepl (shell "clj -M:repl --port 5555")
+         run   (shell (str "clj -X core/run "
+                           (clojure.string/join " " *command-line-args*)))}}
 
