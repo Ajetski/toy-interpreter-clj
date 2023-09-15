@@ -7,21 +7,18 @@
 (def function-table (atom {}))
 (def call-stack     (atom []))
 
-(def language-grammar
+(def parser
   (insta/parser
-   "MODULE = FUNC+
-     FUNC = 'fn' IDENT '(' PARAMS ')' '->' 'i32' BLOCK
+   "MODULE = (W? FUNC W?)+
+     FUNC = 'fn' W IDENT W? '(' W? PARAMS W? ')' W? '->' W? 'i32' W? BLOCK
      PARAMS = ''
      IDENT = 'a' | 'b' | 'main'
-     BLOCK = '{' EXPR '}'
+     BLOCK = '{' W? EXPR W? '}'
      EXPR = ADDITION | LITERAL | FUNCCALL
-     FUNCCALL = IDENT '(' PARAMS ')'
+     FUNCCALL = IDENT '(' W? PARAMS W? ')'
      LITERAL = #'[0-9]+'
-     ADDITION = EXPR '+' EXPR"))
-
-(defn lex-and-parse [raw-input]
-  (let [input (string/replace raw-input #"[\n\s]" "")]
-    (language-grammar input)))
+     ADDITION = EXPR W? '+' W? EXPR
+     W = #'[\n ]+'"))
 
 (defn interpret [ast]
   (pprint ast))
@@ -29,11 +26,11 @@
 (defn run [opts]
   (if (contains? opts :filename)
     (let [cwd (java.io.File. ".")
-          cwd-str (.getAbsolutePath cwd)
+          curr-path (.getAbsolutePath cwd)
           filename (:filename opts)
-          filename-str (str cwd-str "/" filename)
-          file-contents (slurp filename-str)
-          ast (lex-and-parse file-contents)]
+          filepath (str curr-path "/" filename)
+          input (slurp filepath)
+          ast (parser input)]
       (interpret ast))
     (println "use std in... to be implemented")))
 
