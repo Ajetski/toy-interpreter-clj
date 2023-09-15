@@ -9,7 +9,7 @@
     * run `bb nrepl`
 * to start repl using clj:
     * run `clj -M:repl --port 5555`
-* once you have cider/nrepl running on port 5555 start an editor and "jack-in" or connect through port 5555 (noted in `.nrepl-port` for automatic configuration)
+* once you have cider/nrepl running on port 5555 start an editor and "jack-in" or connect through port 5555
 
 ### notes on clojure interpreter implementation
 * to start contributing seriously in clojure: I recommend getting comfortable with conjure.nvim, emacs, Intellij's Curisve plugin, or vscode's Calva extension
