@@ -6,6 +6,6 @@ fn b() -> i32 {
   6
 }
 
-fn main() {
+fn main() -> i32 {
   a() + b()
 }
