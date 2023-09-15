@@ -11,7 +11,7 @@
     * to start repl using clj:
         * run `clj -M:repl --port 5555`
     * once you have cider/nrepl running on port 5555 start an editor and "jack-in" or connect through port 5555
-* run program via cli
+* run program via cli:
     * to run using bb:
         * `bb run :filename <path_to_file>`
             * for example `bb run :filename test_input/hello_world.txt`
