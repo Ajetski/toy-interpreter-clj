@@ -23,7 +23,7 @@
 * to start contributing seriously in clojure: I recommend getting comfortable with conjure.nvim, emacs, Intellij's Curisve plugin, or vscode's Calva extension
 * note: we are using clojure for initial prototyping speed, but we should be able to reuse parts of the parser/lexer and rewrite the backend in a different language if preferred. we can also rewrite the parser/lexer if desired. i just want to get something working first
 
-### status of parser
+### parser examples (last updated 9/14/23, run or read code for most up-to-date results)
 
 input:
 ```rs
