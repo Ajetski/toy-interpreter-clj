@@ -11,10 +11,13 @@
      PARAMS = ''
      IDENT = #'[a-zA-Z\\-_][a-zA-Z\\-_0-9]*'
      BLOCK = '{' W? EXPR W? '}'
-     EXPR = ADDITION | LITERAL | FUNCCALL
+     EXPR = ADDITION | SUBTRACTION | MULTIPLICATION | DIVISION | LITERAL | FUNCCALL
      FUNCCALL = IDENT '(' W? PARAMS W? ')'
      LITERAL = #'[0-9]+'
      ADDITION = EXPR W? '+' W? EXPR
+     MULTIPLICATION = EXPR W? '*' W? EXPR
+     SUBTRACTION = EXPR W? '-' W? EXPR
+     DIVISION = EXPR W? '/' W? EXPR
      W = #'[ \n]+'"))
 (defn parse [input]
   (parser input))
@@ -64,6 +67,24 @@
         right (interpret (second exprs))]
     (+ left right)))
 
+(defmethod interpret :SUBTRACTION [add]
+  (let [exprs (get-all-by-tag :EXPR add)
+        left (interpret (first exprs))
+        right (interpret (second exprs))]
+    (- left right)))
+
+(defmethod interpret :MULTIPLICATION [add]
+  (let [exprs (get-all-by-tag :EXPR add)
+        left (interpret (first exprs))
+        right (interpret (second exprs))]
+    (* left right)))
+
+(defmethod interpret :DIVISION [add]
+  (let [exprs (get-all-by-tag :EXPR add)
+        left (interpret (first exprs))
+        right (interpret (second exprs))]
+    (/ left right)))
+
 (defmethod interpret :LITERAL [literal]
   (Integer/parseInt (second literal)))
 
@@ -83,6 +104,7 @@
           input (slurp filepath)
           ast (parse input)]
       (interpret ast)
+      ; (pprint ast)
       (prn (invoke-fn "main")))
     (println "use std in... to be implemented")))
 
