@@ -9,15 +9,13 @@
    "MODULE = (W? FUNC W?)+
      FUNC = 'fn' W IDENT W? '(' W? PARAMS W? ')' W? '->' W? 'i32' W? BLOCK
      PARAMS = ''
-     IDENT = #'[a-zA-Z\\-_][a-zA-Z\\-_0-9]*'
+     IDENT = #'[\\-_]*[a-zA-Z][a-zA-Z\\-_0-9]*'
      BLOCK = '{' W? EXPR W? '}'
-     EXPR = ADDITION | SUBTRACTION | MULTIPLICATION | DIVISION | LITERAL | FUNCCALL
+     EXPR = TERM W? {('+'|'-') W? TERM W?}
+     TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
+     FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
      FUNCCALL = IDENT '(' W? PARAMS W? ')'
-     LITERAL = #'[0-9]+'
-     ADDITION = EXPR W? '+' W? EXPR
-     MULTIPLICATION = EXPR W? '*' W? EXPR
-     SUBTRACTION = EXPR W? '-' W? EXPR
-     DIVISION = EXPR W? '/' W? EXPR
+     LITERAL = #'-?[0-9]+'
      W = #'[ \n]+'"))
 (defn parse [input]
   (parser input))
@@ -36,8 +34,7 @@
 (def call-stack     (atom []))
 
 ;;; INTERPRETER ;;;
-(defmulti interpret
-  #(get % 0))
+(defmulti interpret first)
 
 (defmethod interpret :MODULE [modlue]
   (let [funcs (filter #(= (get % 0) :FUNC) modlue)]
@@ -59,33 +56,57 @@
     (interpret expr)))
 
 (defmethod interpret :EXPR [expr]
-  (interpret (second expr)))
+  (loop [terms (get-all-by-tag :TERM expr)
+         ops (filter string? expr)
+         val nil
+         lastop nil]
+    (let [term (first terms)
+          term-val (interpret term)
+          rest-terms (drop 1 terms)
+          op (first ops)
+          rest-ops (drop 1 ops)]
+      (if (= (count terms) 1)
+        (if (= lastop nil)
+          term-val
+          (if (= lastop "+")
+            (+ val term-val)
+            (- val term-val)))
+        (recur rest-terms
+               rest-ops
+               (cond (= lastop "+") (+ (or val 0) term-val)
+                     (= lastop "-") (- (or val 0) term-val)
+                     :else term-val)
+               op)))))
 
-(defmethod interpret :ADDITION [add]
-  (let [exprs (get-all-by-tag :EXPR add)
-        left (interpret (first exprs))
-        right (interpret (second exprs))]
-    (+ left right)))
+(defmethod interpret :TERM [term]
+  (loop [factors (get-all-by-tag :FACTOR term)
+         ops (filter string? term)
+         val nil
+         lastop nil]
+    (let [factor (filter #(not (string? %)) (first factors))
+          factor-val (interpret factor)
+          rest-factors (drop 1 factors)
+          op (first ops)
+          rest-ops (drop 1 ops)]
+      (prn val factor-val factor)
+      (if (= (count factors) 1)
+        (if (= lastop nil)
+          factor-val
+          (if (= lastop "*")
+            (* val factor-val)
+            (/ val factor-val)))
+        (recur rest-factors
+               rest-ops
+               (cond (= lastop "*") (* (or val 1) factor-val)
+                     (= lastop "/") (/ (or val 1) factor-val)
+                     :else factor-val)
+               op)))))
 
-(defmethod interpret :SUBTRACTION [add]
-  (let [exprs (get-all-by-tag :EXPR add)
-        left (interpret (first exprs))
-        right (interpret (second exprs))]
-    (- left right)))
-
-(defmethod interpret :MULTIPLICATION [add]
-  (let [exprs (get-all-by-tag :EXPR add)
-        left (interpret (first exprs))
-        right (interpret (second exprs))]
-    (* left right)))
-
-(defmethod interpret :DIVISION [add]
-  (let [exprs (get-all-by-tag :EXPR add)
-        left (interpret (first exprs))
-        right (interpret (second exprs))]
-    (/ left right)))
+(defmethod interpret :FACTOR [factor]
+  (interpret (second factor)))
 
 (defmethod interpret :LITERAL [literal]
+  (prn :LITERAL literal)
   (Integer/parseInt (second literal)))
 
 (defmethod interpret :default [node]
@@ -109,6 +130,5 @@
     (println "use std in... to be implemented")))
 
 ;;; REPL PLAYGROUND ;;;
-(comment
-   (run {:filename "test_input/hello_world.txt"}))
+(run {:filename "test_input/hello_world.txt"})
 
