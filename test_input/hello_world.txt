@@ -1,5 +1,5 @@
 fn a(num: i32) -> i32 {
-  num + 5
+  num + b()
 }
 
 fn b() -> i32 {
