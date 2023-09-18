@@ -62,12 +62,15 @@
         function (@function-table fn-name)
         block (get-by-tag :BLOCK function)
         expr (get-by-tag :EXPR block)]
-    (interpret expr)))
+    (swap! call-stack conj []) ;; set up call-stack
+    (let [res (interpret expr)]
+      (swap! call-stack pop) ;; clean up call-stack
+      res)))
 
 (defmethod interpret :EXPR [expr]
   (loop [terms (get-all-by-tag :TERM expr)
          ops (filter string? expr)
-         val nil
+         val 0
          lastop nil]
     (let [term (first terms)
           term-val (interpret term)
@@ -75,22 +78,20 @@
           op (first ops)
           rest-ops (drop 1 ops)]
       (if (= (count terms) 1)
-        (if (= lastop nil)
-          term-val
-          (if (= lastop "+")
-            (+ val term-val)
-            (- val term-val)))
+        (cond (= lastop "+") (+ val term-val)
+              (= lastop "-") (- val term-val)
+              :else term-val)
         (recur rest-terms
                rest-ops
-               (cond (= lastop "+") (+ (or val 0) term-val)
-                     (= lastop "-") (- (or val 0) term-val)
+               (cond (= lastop "+") (+ val term-val)
+                     (= lastop "-") (- val term-val)
                      :else term-val)
                op)))))
 
 (defmethod interpret :TERM [term]
   (loop [factors (get-all-by-tag :FACTOR term)
          ops (filter string? term)
-         val nil
+         val 1
          lastop nil]
     (let [factor (filter #(not (string? %)) (first factors))
           factor-val (interpret factor)
@@ -98,15 +99,13 @@
           op (first ops)
           rest-ops (drop 1 ops)]
       (if (= (count factors) 1)
-        (if (= lastop nil)
-          factor-val
-          (if (= lastop "*")
-            (* val factor-val)
-            (/ val factor-val)))
+        (cond (= lastop "*") (* val factor-val)
+              (= lastop "/") (/ val factor-val)
+              :else  factor-val)
         (recur rest-factors
                rest-ops
-               (cond (= lastop "*") (* (or val 1) factor-val)
-                     (= lastop "/") (/ (or val 1) factor-val)
+               (cond (= lastop "*") (* val factor-val)
+                     (= lastop "/") (/ val factor-val)
                      :else factor-val)
                op)))))
 
