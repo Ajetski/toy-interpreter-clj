@@ -7,14 +7,17 @@
 (def parser
   (insta/parser
    "MODULE = (W? FUNC W?)+
-     FUNC = 'fn' W IDENT W? '(' W? PARAMS W? ')' W? '->' W? 'i32' W? BLOCK
-     PARAMS = ''
+     FUNC = 'fn' W IDENT W? '(' W? PARAMS? W? ')' W? '->' W? 'i32' W? BLOCK
+     PARAMS = (PARAM {',' PARAM } ','?)? 
+     PARAM = IDENT W? ':' W? 'i32'
+     ARGS = (ARG {',' ARG } ','?)? 
+     ARG = W? EXPR W?
      IDENT = #'[\\-_]*[a-zA-Z][a-zA-Z\\-_0-9]*'
      BLOCK = '{' W? EXPR W? '}'
      EXPR = TERM W? {('+'|'-') W? TERM W?}
      TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
      FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
-     FUNCCALL = IDENT '(' W? PARAMS W? ')'
+     FUNCCALL = IDENT '(' W? ARGS? W? ')'
      LITERAL = #'-?[0-9]+'
      W = #'[ \n]+'"))
 (defn parse [input]
@@ -56,13 +59,32 @@
            fn-name
            function)))
 
-(defmethod interpret :FUNCCALL [node]
-  (let [ident (get node 1)
-        fn-name (get ident 1)
-        function (@function-table fn-name)
-        block (get-by-tag :BLOCK function)
-        expr (get-by-tag :EXPR block)]
-    (swap! call-stack conj []) ;; set up call-stack
+(defmethod interpret :FUNCCALL [func-call]
+  (let [ident (get func-call 1)
+        func-name (get ident 1)
+        func (@function-table func-name)
+        block (get-by-tag :BLOCK func)
+        expr (get-by-tag :EXPR block)
+        args (get-all-by-tag :ARG (get-by-tag :ARGS func-call))
+        params (get-all-by-tag :PARAM (get-by-tag :PARAMS func))
+        vals (loop [args args
+                    params params
+                    vals {}]
+               (if (= 0 (count args))
+                 vals
+                 (let [param (first params)
+                       ident (second param)
+                       param-name (second ident)
+                       rest-params (drop 1 params)
+                       arg (first args)
+                       rest-args (drop 1 args)
+                       expr (second arg)
+                       ]
+                   (recur rest-args
+                          rest-params
+                          (assoc vals param-name
+                                 (interpret expr))))))]
+    (swap! call-stack conj vals) ;; set up call-stack
     (let [res (interpret expr)]
       (swap! call-stack pop) ;; clean up call-stack
       res)))
@@ -114,6 +136,11 @@
 
 (defmethod interpret :LITERAL [literal]
   (Integer/parseInt (second literal)))
+
+(defmethod interpret :IDENT [ident]
+  (let [scope (last @call-stack)
+        name (second ident)]
+    (scope name)))
 
 (defmethod interpret :default [node]
   (println "UNKNOWN NODE:" node))
