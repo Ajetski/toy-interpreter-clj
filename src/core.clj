@@ -130,5 +130,6 @@
     (println "use std in... to be implemented")))
 
 ;;; REPL PLAYGROUND ;;;
-(run {:filename "test_input/hello_world.txt"})
+(comment
+  (run {:filename "test_input/hello_world.txt"}))
 
