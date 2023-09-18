@@ -1,7 +1,5 @@
 (ns core
-  (:require [instaparse.core :as insta]
-            ; [clojure.pprint :refer [pprint]]
-            ))
+  (:require [instaparse.core :as insta]))
 
 ;;; PARSER ;;;
 (def parser
@@ -24,6 +22,13 @@
   (parser input))
 
 ;;; UTILS ;;;
+(defn get-file [filename]
+  (str (-> "."
+           java.io.File.
+           .getAbsolutePath)
+       "/"
+       filename))
+
 (defn get-by-tag "returns the first element in a list that starts with the provided tag"
   [tag node]
   (first (drop-while #(not (= (get % 0) tag)) node)))
@@ -60,33 +65,22 @@
            function)))
 
 (defmethod interpret :FUNCCALL [func-call]
-  (let [ident (get func-call 1)
-        func-name (get ident 1)
-        func (@function-table func-name)
-        block (get-by-tag :BLOCK func)
-        expr (get-by-tag :EXPR block)
+  (let [func (@function-table (get (get func-call 1) 1))
         args (get-all-by-tag :ARG (get-by-tag :ARGS func-call))
-        params (get-all-by-tag :PARAM (get-by-tag :PARAMS func))
-        vals (loop [args args
-                    params params
-                    vals {}]
-               (if (= 0 (count args))
-                 vals
-                 (let [param (first params)
-                       ident (second param)
-                       param-name (second ident)
-                       rest-params (drop 1 params)
-                       arg (first args)
-                       rest-args (drop 1 args)
-                       expr (second arg)
-                       ]
-                   (recur rest-args
-                          rest-params
-                          (assoc vals param-name
-                                 (interpret expr))))))]
-    (swap! call-stack conj vals) ;; set up call-stack
-    (let [res (interpret expr)]
-      (swap! call-stack pop) ;; clean up call-stack
+        params (get-all-by-tag :PARAM (get-by-tag :PARAMS func))]
+    (swap! call-stack conj
+           (loop [args args
+                  params params
+                  vals {}]
+             (if (= 0 (count args))
+               vals
+               (recur (drop 1 args)
+                      (drop 1 params)
+                      (assoc vals
+                             (-> params first second second)
+                             (-> args first second interpret))))))
+    (let [res (->> func (get-by-tag :BLOCK) (get-by-tag :EXPR) interpret)]
+      (swap! call-stack pop)
       res)))
 
 (defmethod interpret :EXPR [expr]
@@ -94,42 +88,34 @@
          ops (filter string? expr)
          val 0
          lastop nil]
-    (let [term (first terms)
-          term-val (interpret term)
-          rest-terms (drop 1 terms)
-          op (first ops)
-          rest-ops (drop 1 ops)]
+    (let [term (-> terms first interpret)]
       (if (= (count terms) 1)
-        (cond (= lastop "+") (+ val term-val)
-              (= lastop "-") (- val term-val)
-              :else term-val)
-        (recur rest-terms
-               rest-ops
-               (cond (= lastop "+") (+ val term-val)
-                     (= lastop "-") (- val term-val)
-                     :else term-val)
-               op)))))
+        (cond (= lastop "+") (+ val term)
+              (= lastop "-") (- val term)
+              :else term)
+        (recur (drop 1 terms)
+               (drop 1 ops)
+               (cond (= lastop "+") (+ val term)
+                     (= lastop "-") (- val term)
+                     :else term)
+               (first ops))))))
 
 (defmethod interpret :TERM [term]
   (loop [factors (get-all-by-tag :FACTOR term)
          ops (filter string? term)
          val 1
          lastop nil]
-    (let [factor (filter #(not (string? %)) (first factors))
-          factor-val (interpret factor)
-          rest-factors (drop 1 factors)
-          op (first ops)
-          rest-ops (drop 1 ops)]
+    (let [factor (->> factors first (filter #(not (string? %))) interpret)]
       (if (= (count factors) 1)
-        (cond (= lastop "*") (* val factor-val)
-              (= lastop "/") (/ val factor-val)
-              :else  factor-val)
-        (recur rest-factors
-               rest-ops
-               (cond (= lastop "*") (* val factor-val)
-                     (= lastop "/") (/ val factor-val)
-                     :else factor-val)
-               op)))))
+        (cond (= lastop "*") (* val factor)
+              (= lastop "/") (/ val factor)
+              :else  factor)
+        (recur (drop 1 factors)
+               (drop 1 ops)
+               (cond (= lastop "*") (* val factor)
+                     (= lastop "/") (/ val factor)
+                     :else factor)
+               (first ops))))))
 
 (defmethod interpret :FACTOR [factor]
   (interpret (second factor)))
@@ -138,9 +124,7 @@
   (Integer/parseInt (second literal)))
 
 (defmethod interpret :IDENT [ident]
-  (let [scope (last @call-stack)
-        name (second ident)]
-    (scope name)))
+  ((last @call-stack) (second ident)))
 
 (defmethod interpret :default [node]
   (println "UNKNOWN NODE:" node))
@@ -151,19 +135,15 @@
 ;;; ENTRYPOINT ;;;
 (defn run [opts]
   (if (contains? opts :filename)
-    (let [cwd (java.io.File. ".")
-          curr-path (.getAbsolutePath cwd)
-          filename (:filename opts)
-          filepath (str curr-path "/" filename)
-          input (slurp filepath)
-          ast (parse input)
-          clean-ast (remove-whitespace ast)]
-      ; (pprint clean-ast)
-      (interpret clean-ast)
-      (prn (invoke-fn "main")))
-    (println "use std in... to be implemented")))
+    (prn "no filename provided... running default file: test_input/hello_world.txt"))
+  (interpret (->> (if (contains? opts :filename)
+                    (get-file (:filename opts))
+                    (get-file "test_input/hello_world.txt"))
+                  slurp
+                  parse
+                  remove-whitespace))
+  (prn (invoke-fn "main")))
 
 ;;; REPL PLAYGROUND ;;;
 (comment
   (run {:filename "test_input/hello_world.txt"}))
-
