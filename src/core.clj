@@ -1,7 +1,7 @@
 (ns core
-  (:require [clojure.pprint :refer [pprint]]
-            ; [clojure.string :as string]
-            [instaparse.core :as insta]))
+  (:require [instaparse.core :as insta]
+            ; [clojure.pprint :refer [pprint]]
+            ))
 
 ;;; PARSER ;;;
 (def parser
@@ -29,11 +29,20 @@
   [tag node]
   (filter #(= (get % 0) tag) node))
 
-;; ⚠️  beware ⚠️: global state... 👻 spooky 👻
+(defn remove-whitespace "recursively removes all :W nodes in an ast"
+  [node]
+  (->> node
+       (filter #(not (and (coll? %)
+                          (= (first %) :W))))
+       (map #(if (coll? %)
+               (remove-whitespace %)
+               %))
+       (into [])))
+
+;;; INTERPRETER ;;;
 (def function-table (atom {}))
 (def call-stack     (atom []))
 
-;;; INTERPRETER ;;;
 (defmulti interpret first)
 
 (defmethod interpret :MODULE [modlue]
@@ -121,9 +130,10 @@
           filename (:filename opts)
           filepath (str curr-path "/" filename)
           input (slurp filepath)
-          ast (parse input)]
-      (interpret ast)
-      ; (pprint ast)
+          ast (parse input)
+          clean-ast (remove-whitespace ast)]
+      ; (pprint clean-ast)
+      (interpret clean-ast)
       (prn (invoke-fn "main")))
     (println "use std in... to be implemented")))
 
