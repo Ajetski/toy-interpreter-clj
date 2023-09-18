@@ -25,7 +25,7 @@
   [tag node]
   (first (drop-while #(not (= (get % 0) tag)) node)))
 
-(defn get-all-by-tag "returns the first element in a list that starts with the provided tag"
+(defn get-all-by-tag "returns all elements in a list that starts with the provided tag"
   [tag node]
   (filter #(= (get % 0) tag) node))
 
