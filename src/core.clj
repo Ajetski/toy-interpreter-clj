@@ -88,7 +88,6 @@
           rest-factors (drop 1 factors)
           op (first ops)
           rest-ops (drop 1 ops)]
-      (prn val factor-val factor)
       (if (= (count factors) 1)
         (if (= lastop nil)
           factor-val
@@ -106,7 +105,6 @@
   (interpret (second factor)))
 
 (defmethod interpret :LITERAL [literal]
-  (prn :LITERAL literal)
   (Integer/parseInt (second literal)))
 
 (defmethod interpret :default [node]
