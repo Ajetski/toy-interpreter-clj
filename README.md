@@ -23,14 +23,14 @@
 * to start contributing seriously in clojure: I recommend getting comfortable with conjure.nvim, emacs, Intellij's Curisve plugin, or vscode's Calva extension
 * note: we are using clojure for initial prototyping speed, but we should be able to reuse parts of the parser/lexer and rewrite the backend in a different language if preferred. we can also rewrite the parser/lexer if desired. i just want to get something working first
 
-### parser examples
+### interpreter examples
 
-_(last updated 9/14/23, run or read code for most up-to-date results)_
+_(last updated 9/18/23, run or read code for most up-to-date results)_
 
 input:
 ```rs
-fn a() -> i32 {
-  5
+fn a(num: i32) -> i32 {
+  num + b()
 }
 
 fn b() -> i32 {
@@ -38,59 +38,28 @@ fn b() -> i32 {
 }
 
 fn main() -> i32 {
-  a() + b()
+  2 * a(2) + 100 * b() + 3 * (-2 + 2)
 }
 ```
 
 output:
-```edn
-[:MODULE
- [:FUNC
-  "fn"
-  [:IDENT "a"]
-  "("
-  [:PARAMS]
-  ")"
-  "->"
-  "i32"
-  [:BLOCK "{" [:EXPR [:LITERAL "5"]] "}"]]
- [:FUNC
-  "fn"
-  [:IDENT "b"]
-  "("
-  [:PARAMS]
-  ")"
-  "->"
-  "i32"
-  [:BLOCK "{" [:EXPR [:LITERAL "6"]] "}"]]
- [:FUNC
-  "fn"
-  [:IDENT "main"]
-  "("
-  [:PARAMS]
-  ")"
-  "->"
-  "i32"
-  [:BLOCK
-   "{"
-   [:EXPR
-    [:ADDITION
-     [:EXPR [:FUNCCALL [:IDENT "a"] "(" [:PARAMS] ")"]]
-     "+"
-     [:EXPR [:FUNCCALL [:IDENT "b"] "(" [:PARAMS] ")"]]]]
-   "}"]]]
-```
+616
 
 grammar ([docs](https://github.com/Engelberg/instaparse/tree/master#notation) on notation):
 ```
-MODULE = FUNC+
-     FUNC = 'fn' IDENT '(' PARAMS ')' '->' 'i32' BLOCK
-     PARAMS = ''
-     IDENT = 'a' | 'b' | 'main'
-     BLOCK = '{' EXPR '}'
-     EXPR = ADDITION | LITERAL | FUNCCALL
-     FUNCCALL = IDENT '(' PARAMS ')'
-     LITERAL = #'[0-9]+'
-     ADDITION = EXPR '+' EXPR
+MODULE = (W? FUNC W?)+
+FUNC = 'fn' W IDENT W? '(' W? PARAMS? W? ')' W? '->' W? 'i32' W? BLOCK
+PARAMS = (PARAM {',' PARAM } ','?)? 
+PARAM = IDENT W? ':' W? 'i32'
+ARGS = (ARG {',' ARG } ','?)? 
+ARG = W? EXPR W?
+IDENT = #'[\\-_]*[a-zA-Z][a-zA-Z\\-_0-9]*'
+BLOCK = '{' W? EXPR W? '}'
+EXPR = TERM W? {('+'|'-') W? TERM W?}
+TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
+FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
+FUNCCALL = IDENT '(' W? ARGS? W? ')'
+LITERAL = #'-?[0-9]+'
+W = #'[ \n]+'
 ```
 
