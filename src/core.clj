@@ -134,7 +134,7 @@
 
 ;;; ENTRYPOINT ;;;
 (defn run [opts]
-  (if (contains? opts :filename)
+  (if (not (contains? opts :filename))
     (prn "no filename provided... running default file: test_input/hello_world.txt"))
   (interpret (->> (if (contains? opts :filename)
                     (get-file (:filename opts))
