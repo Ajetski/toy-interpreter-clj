@@ -22,16 +22,14 @@
   (parser input))
 
 ;;; UTILS ;;;
-(defn get-file [filename]
-  (str (-> "."
-           java.io.File.
-           .getAbsolutePath)
-       "/"
-       filename))
+(defn get-file-path [filename]
+  (str (.getAbsolutePath (java.io.File. ".")) "/" filename))
 
 (defn get-by-tag "returns the first element in a list that starts with the provided tag"
   [tag node]
-  (first (drop-while #(not (= (get % 0) tag)) node)))
+  (->> node
+       (drop-while #(not (= (get % 0) tag)))
+       first))
 
 (defn get-all-by-tag "returns all elements in a list that starts with the provided tag"
   [tag node]
@@ -53,9 +51,9 @@
 
 (defmulti interpret first)
 
-(defmethod interpret :MODULE [modlue]
-  (let [funcs (filter #(= (get % 0) :FUNC) modlue)]
-    (doseq [func funcs] (interpret func))))
+(defmethod interpret :MODULE [module]
+  (doseq [func (get-all-by-tag :FUNC module)]
+    (interpret func)))
 
 (defmethod interpret :FUNC [function]
   (let [ident (get-by-tag :IDENT function)
@@ -65,14 +63,14 @@
            function)))
 
 (defmethod interpret :FUNCCALL [func-call]
-  (let [func (@function-table (get (get func-call 1) 1))
-        args (get-all-by-tag :ARG (get-by-tag :ARGS func-call))
-        params (get-all-by-tag :PARAM (get-by-tag :PARAMS func))]
+  (let [func (@function-table (-> func-call second second))
+        args (->> func-call (get-by-tag :ARGS) (get-all-by-tag :ARG))
+        params (->> func (get-by-tag :PARAMS) (get-all-by-tag :PARAM))]
     (swap! call-stack conj
            (loop [args args
                   params params
                   vals {}]
-             (if (= 0 (count args))
+             (if (empty? args)
                vals
                (recur (drop 1 args)
                       (drop 1 params)
@@ -88,11 +86,9 @@
          ops (filter string? expr)
          val 0
          lastop nil]
-    (let [term (-> terms first interpret)]
-      (if (= (count terms) 1)
-        (cond (= lastop "+") (+ val term)
-              (= lastop "-") (- val term)
-              :else term)
+    (if (empty? terms)
+      val
+      (let [term (-> terms first interpret)]
         (recur (drop 1 terms)
                (drop 1 ops)
                (cond (= lastop "+") (+ val term)
@@ -105,11 +101,9 @@
          ops (filter string? term)
          val 1
          lastop nil]
-    (let [factor (->> factors first (filter #(not (string? %))) interpret)]
-      (if (= (count factors) 1)
-        (cond (= lastop "*") (* val factor)
-              (= lastop "/") (/ val factor)
-              :else  factor)
+    (if (empty? factors)
+      val
+      (let [factor (->> factors first (filter #(not (string? %))) interpret)]
         (recur (drop 1 factors)
                (drop 1 ops)
                (cond (= lastop "*") (* val factor)
@@ -137,8 +131,8 @@
   (if (not (contains? opts :filename))
     (prn "no filename provided... running default file: test_input/hello_world.txt"))
   (interpret (->> (if (contains? opts :filename)
-                    (get-file (:filename opts))
-                    (get-file "test_input/hello_world.txt"))
+                    (get-file-path (:filename opts))
+                    (get-file-path "test_input/hello_world.txt"))
                   slurp
                   parse
                   remove-whitespace))
