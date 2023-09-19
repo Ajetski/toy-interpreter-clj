@@ -23,7 +23,9 @@
 
 ;;; UTILS ;;;
 (defn get-file-path [filename]
-  (str (.getAbsolutePath (java.io.File. ".")) "/" filename))
+  (-> (java.io.File. ".")
+      .getAbsolutePath
+      (str "/" filename)))
 
 (defn get-by-tag "returns the first element in a list that starts with the provided tag"
   [tag node]
