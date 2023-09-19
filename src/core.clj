@@ -38,12 +38,11 @@
 (defn remove-whitespace "recursively removes all :W nodes in an ast"
   [node]
   (->> node
-       (filter #(not (and (coll? %)
-                          (= (first %) :W))))
-       (map #(if (coll? %)
-               (remove-whitespace %)
-               %))
-       (into [])))
+       (filterv #(not (and (coll? %)
+                           (= (first %) :W))))
+       (mapv #(if (coll? %)
+                (remove-whitespace %)
+                %))))
 
 ;;; INTERPRETER ;;;
 (def function-table (atom {}))
