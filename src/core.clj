@@ -5,19 +5,19 @@
 (def parse
   (insta/parser
    "MODULE = (W? FUNC W?)+
-     FUNC = 'fn' W IDENT W? '(' W? PARAMS? W? ')' W? '->' W? 'i32' W? BLOCK
-     PARAMS = (PARAM {',' PARAM } ','?)? 
-     PARAM = IDENT W? ':' W? 'i32'
-     ARGS = (ARG {',' ARG } ','?)? 
-     ARG = W? EXPR W?
-     IDENT = #'[\\-_]*[a-zA-Z][a-zA-Z\\-_0-9]*'
-     BLOCK = '{' W? EXPR W? '}'
-     EXPR = TERM W? {('+'|'-') W? TERM W?}
-     TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
-     FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
-     FUNCCALL = IDENT '(' W? ARGS? W? ')'
-     LITERAL = #'-?[0-9]+'
-     W = #'[ \n]+'"))
+    FUNC = 'fn' W IDENT W? '(' W? PARAMS? W? ')' W? '->' W? 'i32' W? BLOCK
+    PARAMS = (PARAM {',' PARAM } ','?)? 
+    PARAM = IDENT W? ':' W? 'i32'
+    ARGS = (ARG {',' ARG } ','?)? 
+    ARG = W? EXPR W?
+    IDENT = #'[\\-_a-zA-Z]+[a-zA-Z\\-_0-9]*'
+    BLOCK = '{' W? EXPR W? '}'
+    EXPR = TERM W? {('+'|'-') W? TERM W?}
+    TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
+    FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
+    FUNCCALL = IDENT '(' W? ARGS? W? ')'
+    LITERAL = #'-?[0-9]+'
+    W = #'[ \n]+'"))
 
 ;;; UTILS ;;;
 (defn get-file-path [filename]
