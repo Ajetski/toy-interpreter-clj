@@ -2,7 +2,7 @@
   (:require [instaparse.core :as insta]))
 
 ;;; PARSER ;;;
-(def parser
+(def parse
   (insta/parser
    "MODULE = (W? FUNC W?)+
      FUNC = 'fn' W IDENT W? '(' W? PARAMS? W? ')' W? '->' W? 'i32' W? BLOCK
@@ -18,8 +18,6 @@
      FUNCCALL = IDENT '(' W? ARGS? W? ')'
      LITERAL = #'-?[0-9]+'
      W = #'[ \n]+'"))
-(defn parse [input]
-  (parser input))
 
 ;;; UTILS ;;;
 (defn get-file-path [filename]
@@ -131,12 +129,12 @@
 (defn run [opts]
   (if (not (contains? opts :filename))
     (prn "no filename provided... running default file: test_input/hello_world.txt"))
-  (interpret (->> (if (contains? opts :filename)
-                    (get-file-path (:filename opts))
-                    (get-file-path "test_input/hello_world.txt"))
-                  slurp
-                  parse
-                  remove-whitespace))
+  (interpret (-> (:filename opts)
+                 (or "test_input/hello_world.txt")
+                 get-file-path
+                 slurp
+                 parse
+                 remove-whitespace))
   (prn (invoke-fn "main")))
 
 ;;; REPL PLAYGROUND ;;;
