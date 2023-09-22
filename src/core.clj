@@ -10,7 +10,7 @@
     PARAM = IDENT W? ':' W? 'i32'
     ARGS = (ARG {',' ARG } ','?)? 
     ARG = W? EXPR W?
-    IDENT = #'[\\-_a-zA-Z]+[a-zA-Z\\-_0-9]*'
+    IDENT = #'[\\-_]*([a-zA-Z][a-zA-Z\\-_0-9]*)?'
     BLOCK = '{' W? EXPR W? '}'
     EXPR = TERM W? {('+'|'-') W? TERM W?}
     TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
@@ -45,49 +45,51 @@
                 %))))
 
 ;;; INTERPRETER ;;;
-(def function-table (atom {}))
-(def call-stack     (atom []))
+(defmulti interpret
+  (fn [_cx ast-node] (first ast-node)))
 
-(defmulti interpret first)
+(defmethod interpret :MODULE [cx module]
+  (loop [funcs (get-all-by-tag :FUNC module)
+         cx cx]
+    (if (empty? funcs)
+      cx
+      (recur
+       (drop 1 funcs)
+       (interpret cx (first funcs))))))
 
-(defmethod interpret :MODULE [module]
-  (doseq [func (get-all-by-tag :FUNC module)]
-    (interpret func)))
-
-(defmethod interpret :FUNC [function]
+(defmethod interpret :FUNC [cx function]
   (let [ident (get-by-tag :IDENT function)
         fn-name (second ident)]
-    (swap! function-table assoc
-           fn-name
-           function)))
+    (update cx :function-table assoc fn-name function)))
 
-(defmethod interpret :FUNCCALL [func-call]
-  (let [func (@function-table (-> func-call second second))
+(defmethod interpret :FUNCCALL [cx func-call]
+  (let [func ((cx :function-table) (-> func-call second second))
         args (->> func-call (get-by-tag :ARGS) (get-all-by-tag :ARG))
-        params (->> func (get-by-tag :PARAMS) (get-all-by-tag :PARAM))]
-    (swap! call-stack conj
-           (loop [args args
-                  params params
-                  vals {}]
-             (if (empty? args)
-               vals
-               (recur (drop 1 args)
-                      (drop 1 params)
-                      (assoc vals
-                             (-> params first second second)
-                             (-> args first second interpret))))))
-    (let [res (->> func (get-by-tag :BLOCK) (get-by-tag :EXPR) interpret)]
-      (swap! call-stack pop)
-      res)))
+        params (->> func (get-by-tag :PARAMS) (get-all-by-tag :PARAM))
+        cx (update cx :call-stack conj
+                   (loop [args args
+                          params params
+                          vals {}]
+                     (if (empty? args)
+                       vals
+                       (recur (drop 1 args)
+                              (drop 1 params)
+                              (assoc vals
+                                     (-> params first second second)
+                                     (interpret cx (-> args first second)))))))]
+    (->> func
+         (get-by-tag :BLOCK)
+         (get-by-tag :EXPR)
+         (interpret cx))))
 
-(defmethod interpret :EXPR [expr]
+(defmethod interpret :EXPR [cx expr]
   (loop [terms (get-all-by-tag :TERM expr)
          ops (filter string? expr)
          val 0
          lastop nil]
     (if (empty? terms)
       val
-      (let [term (-> terms first interpret)]
+      (let [term (->> terms first (interpret cx))]
         (recur (drop 1 terms)
                (drop 1 ops)
                (cond (= lastop "+") (+ val term)
@@ -95,14 +97,14 @@
                      :else term)
                (first ops))))))
 
-(defmethod interpret :TERM [term]
+(defmethod interpret :TERM [cx term]
   (loop [factors (get-all-by-tag :FACTOR term)
          ops (filter string? term)
          val 1
          lastop nil]
     (if (empty? factors)
       val
-      (let [factor (->> factors first (filter #(not (string? %))) interpret)]
+      (let [factor (->> factors first (filter #(not (string? %))) (interpret cx))]
         (recur (drop 1 factors)
                (drop 1 ops)
                (cond (= lastop "*") (* val factor)
@@ -110,32 +112,34 @@
                      :else factor)
                (first ops))))))
 
-(defmethod interpret :FACTOR [factor]
-  (interpret (second factor)))
+(defmethod interpret :FACTOR [cx factor]
+  (interpret cx (second factor)))
 
-(defmethod interpret :LITERAL [literal]
+(defmethod interpret :LITERAL [_cx literal]
   (Integer/parseInt (second literal)))
 
-(defmethod interpret :IDENT [ident]
-  ((last @call-stack) (second ident)))
+(defmethod interpret :IDENT [cx ident]
+  ((-> cx :call-stack last) (second ident)))
 
-(defmethod interpret :default [node]
+(defmethod interpret :default [_cx node]
   (println "UNKNOWN NODE:" node))
 
-(defn invoke-fn [fn-name]
-  (interpret [:FUNCCALL [:IDENT fn-name] "(" [:PARAMS] ")"]))
+(defn invoke-fn [cx fn-name]
+  (interpret cx [:FUNCCALL [:IDENT fn-name] "(" [:PARAMS] ")"]))
 
 ;;; ENTRYPOINT ;;;
 (defn run [opts]
   (if (not (contains? opts :filename))
     (prn "no filename provided... running default file: test_input/hello_world.txt"))
-  (interpret (-> (:filename opts)
-                 (or "test_input/hello_world.txt")
-                 get-file-path
-                 slurp
-                 parse
-                 remove-whitespace))
-  (prn (invoke-fn "main")))
+  (let [cx (interpret {:function-table {}
+                       :call-stack []}
+                      (-> (:filename opts)
+                          (or "test_input/hello_world.txt")
+                          get-file-path
+                          slurp
+                          parse
+                          remove-whitespace))]
+    (prn (invoke-fn cx "main"))))
 
 ;;; REPL PLAYGROUND ;;;
 (comment
