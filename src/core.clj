@@ -56,6 +56,13 @@
   (pprint x)
   x)
 
+(defn update-last
+  "updates the last element in an ordered collection"
+  [coll & args]
+  (apply update (concat (list coll
+                              (dec (count coll)))
+                        args)))
+
 ;;; INTERPRETER ;;;
 (defmulti interpret
   "takes in a context and an ast node
@@ -86,7 +93,8 @@
                    (loop [args (->> func-call
                                     (get-by-tag :ARGS)
                                     (get-all-by-tag :ARG))
-                          params (->> ((cx :function-table) (-> func-call second second))
+                          params (->> ((cx :function-table)
+                                       (-> func-call second second))
                                       (get-by-tag :PARAMS)
                                       (get-all-by-tag :PARAM))
                           vals {}]
@@ -117,9 +125,8 @@
   [cx node]
   (let [ident (get-by-tag :IDENT node)
         expr (get-by-tag :EXPR node)]
-    (update cx :call-stack
-            #(update % (dec (count %))
-                     assoc (second ident) (interpret cx expr)))))
+    (update cx :call-stack update-last
+            assoc (second ident) (interpret cx expr))))
 
 (defmethod interpret :EXPR [cx expr]
   (loop [terms (get-all-by-tag :TERM expr)
