@@ -76,7 +76,7 @@
     (if (empty? funcs)
       cx
       (recur
-       (drop 1 funcs)
+       (rest funcs)
        (interpret cx (first funcs))))))
 
 (defmethod interpret :FUNC [cx function]
@@ -101,14 +101,14 @@
                              vals {}]
                         (if (empty? args)
                           vals
-                          (recur (drop 1 args)
-                                 (drop 1 params)
+                          (recur (rest args)
+                                 (rest params)
                                  (assoc vals
                                         (-> params first second second)
                                         (->> args first second (interpret cx)))))))]
       (if (empty? stmts)
         (interpret cx (get-by-tag :EXPR block))
-        (recur (drop 1 stmts)
+        (recur (rest stmts)
                (->> stmts first (interpret cx)))))))
 
 (defmethod interpret :STATEMENT
@@ -135,8 +135,8 @@
     (if (empty? terms)
       val
       (let [term (->> terms first (interpret cx))]
-        (recur (drop 1 terms)
-               (drop 1 ops)
+        (recur (rest terms)
+               (rest ops)
                (cond (= lastop "+") (+ val term)
                      (= lastop "-") (- val term)
                      :else term)
@@ -150,8 +150,8 @@
     (if (empty? factors)
       val
       (let [factor (->> factors first (filter #(not (string? %))) (interpret cx))]
-        (recur (drop 1 factors)
-               (drop 1 ops)
+        (recur (rest factors)
+               (rest ops)
                (cond (= lastop "*") (* val factor)
                      (= lastop "/") (/ val factor)
                      :else factor)
