@@ -130,7 +130,7 @@
 ;;; ENTRYPOINT ;;;
 (defn run [opts]
   (if (not (contains? opts :filename))
-    (prn "no filename provided... running default file: test_input/hello_world.txt"))
+    (println "running default file: test_input/hello_world.txt"))
   (let [cx (interpret {:function-table {}
                        :call-stack []}
                       (-> (:filename opts)
