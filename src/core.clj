@@ -56,6 +56,8 @@
 
 ;;; INTERPRETER ;;;
 (defmulti interpret
+  "takes in a context and an ast node
+  multimethod returns whatever makes sense in evaluating that ast-node"
   (fn [_cx ast-node] (first ast-node)))
 
 (defmethod interpret :MODULE [cx module]
@@ -68,9 +70,11 @@
        (interpret cx (first funcs))))))
 
 (defmethod interpret :FUNC [cx function]
-  (let [ident (get-by-tag :IDENT function)
-        fn-name (second ident)]
-    (update cx :function-table assoc fn-name function)))
+  (update cx :function-table assoc
+          (->> function
+               (get-by-tag :IDENT)
+               second)
+          function))
 
 (defmethod interpret :FUNCCALL [cx func-call]
   (->> ((cx :function-table) (-> func-call second second))
@@ -142,15 +146,16 @@
 (defn run [opts]
   (if (not (contains? opts :filename))
     (println "running default file: test_input/hello_world.txt"))
-  (let [cx (interpret {:function-table {}
-                       :call-stack []}
-                      (-> (:filename opts)
-                          (or "test_input/hello_world.txt")
-                          get-file-path
-                          slurp
-                          parse
-                          remove-whitespace))]
-    (prn (invoke-fn cx "main"))))
+  (-> (interpret {:function-table {}
+                  :call-stack []}
+                 (-> (:filename opts)
+                     (or "test_input/hello_world.txt")
+                     get-file-path
+                     slurp
+                     parse
+                     remove-whitespace))
+      (invoke-fn "main")
+      println))
 
 ;;; REPL PLAYGROUND ;;;
 (comment
