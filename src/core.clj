@@ -12,7 +12,9 @@
     ARGS = (ARG {',' ARG } ','?)? 
     ARG = W? EXPR W?
     IDENT = #'[\\-_]*([a-zA-Z][a-zA-Z\\-_0-9]*)?'
-    BLOCK = '{' W? EXPR W? '}'
+    BLOCK = '{' {W? STATEMENT  W?} W? EXPR W? '}'
+    STATEMENT = LET | (EXPR W? ';')
+    LET = 'let' W? IDENT W? '=' W? EXPR W? ';'
     EXPR = TERM W? {('+'|'-') W? TERM W?}
     TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
     FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
@@ -77,25 +79,47 @@
           function))
 
 (defmethod interpret :FUNCCALL [cx func-call]
-  (->> ((cx :function-table) (-> func-call second second))
-       (get-by-tag :BLOCK)
-       (get-by-tag :EXPR)
-       (interpret
-        (update cx :call-stack conj
-                (loop [args (->> func-call
-                                 (get-by-tag :ARGS)
-                                 (get-all-by-tag :ARG))
-                       params (->> ((cx :function-table) (-> func-call second second))
-                                   (get-by-tag :PARAMS)
-                                   (get-all-by-tag :PARAM))
-                       vals {}]
-                  (if (empty? args)
-                    vals
-                    (recur (drop 1 args)
-                           (drop 1 params)
-                           (assoc vals
-                                  (-> params first second second)
-                                  (interpret cx (-> args first second))))))))))
+  (let [func ((cx :function-table) (-> func-call second second))
+        block (get-by-tag :BLOCK func)
+        final-expr (get-by-tag :EXPR block)
+        cx (update cx :call-stack conj
+                   (loop [args (->> func-call
+                                    (get-by-tag :ARGS)
+                                    (get-all-by-tag :ARG))
+                          params (->> ((cx :function-table) (-> func-call second second))
+                                      (get-by-tag :PARAMS)
+                                      (get-all-by-tag :PARAM))
+                          vals {}]
+                     (if (empty? args)
+                       vals
+                       (recur (drop 1 args)
+                              (drop 1 params)
+                              (assoc vals
+                                     (-> params first second second)
+                                     (->> args first second (interpret cx)))))))]
+    (loop [stmts (get-all-by-tag :STATEMENT block)
+           cx cx]
+      (if (empty? stmts)
+        (interpret cx final-expr)
+        (recur (drop 1 stmts)
+               (->> stmts first (interpret cx)))))))
+
+(defmethod interpret :STATEMENT
+  [cx stmt]
+  (let [expr-node (get-by-tag :EXPR stmt)
+        let-node (get-by-tag :LET stmt)]
+    (if let-node
+      (interpret cx let-node)
+      (do (interpret cx expr-node)
+          cx))))
+
+(defmethod interpret :LET
+  [cx node]
+  (let [ident (get-by-tag :IDENT node)
+        expr (get-by-tag :EXPR node)]
+    (update cx :call-stack
+            #(update % (dec (count %))
+                     assoc (second ident) (interpret cx expr)))))
 
 (defmethod interpret :EXPR [cx expr]
   (loop [terms (get-all-by-tag :TERM expr)
@@ -161,3 +185,4 @@
 (comment
   (run {:filename "test_input/hello_world.txt"}))
 
+(run {})
