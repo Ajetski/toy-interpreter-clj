@@ -19,8 +19,8 @@
     TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
     FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
     FUNCCALL = IDENT '(' W? ARGS? W? ')'
-    LITERAL = #'-?[0-9]+ (* Only supports i32 so far *) '
-    W = #'[ \n]+' (* W is the whitespace symbol *) "))
+    LITERAL = #'-?[0-9]+' (* Only supports i32 so far *)
+    W = #'[ \n]+' (* W is the whitespace symbol *)"))
 
 ;;; UTILS ;;;
 (defn get-file-path [filename]
