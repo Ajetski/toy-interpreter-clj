@@ -190,4 +190,3 @@
 (comment
   (run {:filename "test_input/hello_world.txt"}))
 
-(run {:filename "test_input/hello_world.txt"})
