@@ -1,5 +1,6 @@
 (ns core
-  (:require [instaparse.core :as insta]))
+  (:require [instaparse.core :as insta]
+            [clojure.pprint :refer [pprint]]))
 
 ;;; PARSER ;;;
 (def parse
@@ -25,17 +26,20 @@
       .getAbsolutePath
       (str "/" filename)))
 
-(defn get-by-tag "returns the first element in a list that starts with the provided tag"
+(defn get-by-tag
+  "returns the first element in a list that starts with the provided tag"
   [tag node]
   (->> node
        (drop-while #(not (= (get % 0) tag)))
        first))
 
-(defn get-all-by-tag "returns all elements in a list that starts with the provided tag"
+(defn get-all-by-tag
+  "returns all elements in a list that starts with the provided tag"
   [tag node]
   (filter #(= (get % 0) tag) node))
 
-(defn remove-whitespace "recursively removes all :W nodes in an ast"
+(defn remove-whitespace
+  "recursively removes all :W nodes in an ast"
   [node]
   (->> node
        (filterv #(not (and (coll? %)
@@ -43,6 +47,12 @@
        (mapv #(if (coll? %)
                 (remove-whitespace %)
                 %))))
+
+(defn dbg-print
+  "prints out data before returning it. useful in debugging chained expressions"
+  [x]
+  (pprint x)
+  x)
 
 ;;; INTERPRETER ;;;
 (defmulti interpret
@@ -63,24 +73,25 @@
     (update cx :function-table assoc fn-name function)))
 
 (defmethod interpret :FUNCCALL [cx func-call]
-  (let [func ((cx :function-table) (-> func-call second second))
-        args (->> func-call (get-by-tag :ARGS) (get-all-by-tag :ARG))
-        params (->> func (get-by-tag :PARAMS) (get-all-by-tag :PARAM))
-        cx (update cx :call-stack conj
-                   (loop [args args
-                          params params
-                          vals {}]
-                     (if (empty? args)
-                       vals
-                       (recur (drop 1 args)
-                              (drop 1 params)
-                              (assoc vals
-                                     (-> params first second second)
-                                     (interpret cx (-> args first second)))))))]
-    (->> func
-         (get-by-tag :BLOCK)
-         (get-by-tag :EXPR)
-         (interpret cx))))
+  (->> ((cx :function-table) (-> func-call second second))
+       (get-by-tag :BLOCK)
+       (get-by-tag :EXPR)
+       (interpret
+        (update cx :call-stack conj
+                (loop [args (->> func-call
+                                 (get-by-tag :ARGS)
+                                 (get-all-by-tag :ARG))
+                       params (->> ((cx :function-table) (-> func-call second second))
+                                   (get-by-tag :PARAMS)
+                                   (get-all-by-tag :PARAM))
+                       vals {}]
+                  (if (empty? args)
+                    vals
+                    (recur (drop 1 args)
+                           (drop 1 params)
+                           (assoc vals
+                                  (-> params first second second)
+                                  (interpret cx (-> args first second))))))))))
 
 (defmethod interpret :EXPR [cx expr]
   (loop [terms (get-all-by-tag :TERM expr)
@@ -144,3 +155,4 @@
 ;;; REPL PLAYGROUND ;;;
 (comment
   (run {:filename "test_input/hello_world.txt"}))
+
