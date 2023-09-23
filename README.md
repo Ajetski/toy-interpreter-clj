@@ -25,7 +25,7 @@
 
 ### interpreter examples
 
-_(last updated 9/18/23, run or read code for most up-to-date results)_
+_(last updated 09/23/23, run or read code for most up-to-date results)_
 
 input:
 ```rs
@@ -57,13 +57,15 @@ PARAMS = (PARAM {',' PARAM } ','?)?
 PARAM = IDENT W? ':' W? 'i32'
 ARGS = (ARG {',' ARG } ','?)? 
 ARG = W? EXPR W?
-IDENT = #'[\\-_]*[a-zA-Z][a-zA-Z\\-_0-9]*'
-BLOCK = '{' W? EXPR W? '}'
+IDENT = #'[\\-_]*([a-zA-Z][a-zA-Z\\-_0-9]*)?'
+BLOCK = '{' {W? STATEMENT  W?} W? EXPR W? '}'
+STATEMENT = LET | (EXPR W? ';')
+LET = 'let' W? IDENT W? '=' W? EXPR W? ';'
 EXPR = TERM W? {('+'|'-') W? TERM W?}
 TERM = FACTOR W? {('*'|'/') W? FACTOR W?}
 FACTOR = FUNCCALL | LITERAL | ( '(' EXPR ')' ) | IDENT
 FUNCCALL = IDENT '(' W? ARGS? W? ')'
-LITERAL = #'-?[0-9]+'
-W = #'[ \n]+'
+LITERAL = #'-?[0-9]+' (* Only supports i32 so far *)
+W = #'[ \n]+' (* W is the whitespace symbol *)
 ```
 
