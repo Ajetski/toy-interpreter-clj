@@ -60,9 +60,9 @@
 (defn update-last
   "updates the last element in an ordered collection"
   [coll & args]
-  (apply update (concat (list coll
-                              (dec (count coll)))
-                        args)))
+  (let [last-idx (dec (count coll))]
+    (apply update (concat (list coll last-idx)
+                          args))))
 
 ;;; INTERPRETER ;;;
 (defmulti interpret
@@ -75,15 +75,12 @@
          cx cx]
     (if (empty? funcs)
       cx
-      (recur
-       (rest funcs)
-       (interpret cx (first funcs))))))
+      (recur (rest funcs)
+             (->> funcs first (interpret cx))))))
 
 (defmethod interpret :FUNC [cx function]
   (update cx :function-table assoc
-          (->> function
-               (get-by-tag :IDENT)
-               second)
+          (->> function (get-by-tag :IDENT) second)
           function))
 
 (defmethod interpret :FUNCCALL [cx func-call]
@@ -107,7 +104,7 @@
                                         (-> params first second second)
                                         (->> args first second (interpret cx)))))))]
       (if (empty? stmts)
-        (interpret cx (get-by-tag :EXPR block))
+        (->> block (get-by-tag :EXPR) (interpret cx))
         (recur (rest stmts)
                (->> stmts first (interpret cx)))))))
 
@@ -117,7 +114,7 @@
     (if let-node
       (interpret cx let-node)
       (do
-        (interpret cx (get-by-tag :EXPR stmt))
+        (->> stmt (get-by-tag :EXPR) (interpret cx))
         cx))))
 
 (defmethod interpret :LET
