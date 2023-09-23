@@ -50,6 +50,7 @@
                 (remove-whitespace %)
                 %))))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn dbg-print
   "prints out data before returning it. useful in debugging chained expressions"
   [x]
