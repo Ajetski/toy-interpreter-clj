@@ -2,6 +2,7 @@
   (:require [instaparse.core :as insta]
             [clojure.pprint :refer [pprint]]))
 
+
 ;;; PARSER ;;;
 (def parse
   (insta/parser
@@ -22,7 +23,15 @@
     LITERAL = #'-?[0-9]+' (* Only supports i32 so far *)
     W = #'[ \n]+' (* W is the whitespace symbol *)"))
 
+
 ;;; UTILS ;;;
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(defn dbg-print
+  "prints out data before returning it. useful in debugging chained expressions"
+  [x]
+  (pprint x)
+  x)
+
 (defn get-file-path [filename]
   (-> (java.io.File. ".")
       .getAbsolutePath
@@ -50,19 +59,13 @@
                 (remove-whitespace %)
                 %))))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(defn dbg-print
-  "prints out data before returning it. useful in debugging chained expressions"
-  [x]
-  (pprint x)
-  x)
-
 (defn update-last
   "updates the last element in an ordered collection"
   [coll & args]
   (let [last-idx (dec (count coll))]
     (apply update (concat (list coll last-idx)
                           args))))
+
 
 ;;; INTERPRETER ;;;
 (defmulti interpret
@@ -146,7 +149,10 @@
          lastop nil]
     (if (empty? factors)
       val
-      (let [factor (->> factors first (filter #(not (string? %))) (interpret cx))]
+      (let [factor (->> factors
+                        first
+                        (filter #(not (string? %)))
+                        (interpret cx))]
         (recur (rest factors)
                (rest ops)
                (cond (= lastop "*") (* val factor)
@@ -183,6 +189,7 @@
                      remove-whitespace))
       (invoke-fn "main")
       println))
+
 
 ;;; REPL PLAYGROUND ;;;
 (comment
