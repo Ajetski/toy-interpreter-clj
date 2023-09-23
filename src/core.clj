@@ -188,5 +188,13 @@
 
 ;;; REPL PLAYGROUND ;;;
 (comment
+  #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+  (def _debug true)
+  (run {:filename "test_input/hello_world.txt"})
+  ;;
+  )
+
+;; for insta re-run on entire file
+(when (resolve '_debug)
   (run {:filename "test_input/hello_world.txt"}))
 
