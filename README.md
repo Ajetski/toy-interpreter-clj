@@ -34,7 +34,11 @@ fn a(num: i32) -> i32 {
 }
 
 fn b() -> i32 {
-  6
+  let a = 1;
+  let b = a + 1;
+  let c = b + 1;
+  let d = c + 1;
+  a + b + c + d
 }
 
 fn main() -> i32 {
@@ -43,7 +47,7 @@ fn main() -> i32 {
 ```
 
 output:
-616
+1024
 
 grammar ([docs](https://github.com/Engelberg/instaparse/tree/master#notation) on notation):
 ```
