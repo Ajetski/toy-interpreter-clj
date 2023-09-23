@@ -1,11 +1,13 @@
 fn a(num: i32) -> i32 {
-  let temp = num + 1;
-  temp + b()
+  num + b()
 }
 
 fn b() -> i32 {
-  let temp = 5;
-  temp + 1
+  let a = 1;
+  let b = a + 1;
+  let c = b + 1;
+  let d = c + 1;
+  a + b + c + d
 }
 
 fn main() -> i32 {
