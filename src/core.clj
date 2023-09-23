@@ -144,7 +144,7 @@
 
 ;;; ENTRYPOINT ;;;
 (defn run [opts]
-  (if (not (contains? opts :filename))
+  (when (not (contains? opts :filename))
     (println "running default file: test_input/hello_world.txt"))
   (-> (interpret {:function-table {}
                   :call-stack []}
