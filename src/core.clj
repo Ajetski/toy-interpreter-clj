@@ -189,12 +189,15 @@
 ;;; REPL PLAYGROUND ;;;
 (comment
   #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-  (def _debug true)
+  (def debug true) ;; enable auto-call 'run for debugging
+
+  (ns-unmap 'core 'debug) ;; disable auto-call 'run for degbugging
+
   (run {:filename "test_input/hello_world.txt"})
   ;;
   )
 
 ;; for insta re-run on entire file
-(when (resolve '_debug)
+(when (resolve 'debug)
   (run {:filename "test_input/hello_world.txt"}))
 
