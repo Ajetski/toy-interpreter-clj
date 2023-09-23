@@ -87,39 +87,37 @@
 
 (defmethod interpret :FUNCCALL [cx func-call]
   (let [func ((cx :function-table) (-> func-call second second))
-        block (get-by-tag :BLOCK func)
-        final-expr (get-by-tag :EXPR block)
-        cx (update cx :call-stack conj
-                   (loop [args (->> func-call
-                                    (get-by-tag :ARGS)
-                                    (get-all-by-tag :ARG))
-                          params (->> ((cx :function-table)
-                                       (-> func-call second second))
-                                      (get-by-tag :PARAMS)
-                                      (get-all-by-tag :PARAM))
-                          vals {}]
-                     (if (empty? args)
-                       vals
-                       (recur (drop 1 args)
-                              (drop 1 params)
-                              (assoc vals
-                                     (-> params first second second)
-                                     (->> args first second (interpret cx)))))))]
+        block (get-by-tag :BLOCK func)]
     (loop [stmts (get-all-by-tag :STATEMENT block)
-           cx cx]
+           cx (update cx :call-stack conj
+                      (loop [args (->> func-call
+                                       (get-by-tag :ARGS)
+                                       (get-all-by-tag :ARG))
+                             params (->> ((cx :function-table)
+                                          (-> func-call second second))
+                                         (get-by-tag :PARAMS)
+                                         (get-all-by-tag :PARAM))
+                             vals {}]
+                        (if (empty? args)
+                          vals
+                          (recur (drop 1 args)
+                                 (drop 1 params)
+                                 (assoc vals
+                                        (-> params first second second)
+                                        (->> args first second (interpret cx)))))))]
       (if (empty? stmts)
-        (interpret cx final-expr)
+        (interpret cx (get-by-tag :EXPR block))
         (recur (drop 1 stmts)
                (->> stmts first (interpret cx)))))))
 
 (defmethod interpret :STATEMENT
   [cx stmt]
-  (let [expr-node (get-by-tag :EXPR stmt)
-        let-node (get-by-tag :LET stmt)]
+  (let [let-node (get-by-tag :LET stmt)]
     (if let-node
       (interpret cx let-node)
-      (do (interpret cx expr-node)
-          cx))))
+      (do
+        (interpret cx (get-by-tag :EXPR stmt))
+        cx))))
 
 (defmethod interpret :LET
   [cx node]
@@ -192,3 +190,4 @@
 (comment
   (run {:filename "test_input/hello_world.txt"}))
 
+(run {:filename "test_input/hello_world.txt"})
