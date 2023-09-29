@@ -179,14 +179,13 @@
 (defn run [opts]
   (when (not (contains? opts :filename))
     (println "running default file: test_input/hello_world.txt"))
-  (-> (interpret {:function-table {}
-                  :call-stack []}
-                 (-> (:filename opts)
-                     (or "test_input/hello_world.txt")
-                     get-file-path
-                     slurp
-                     parse
-                     remove-whitespace))
+  (-> (:filename opts)
+      (or "test_input/hello_world.txt")
+      get-file-path
+      slurp
+      parse
+      remove-whitespace
+      (->> (interpret {:function-table {}, :call-stack []}))
       (invoke-fn "main")
       println))
 
